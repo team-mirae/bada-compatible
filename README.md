@@ -13,7 +13,9 @@ the language keys and Caps Lock. Any wrapper that runs bada's engine can run you
 | Repository | Role |
 |---|---|
 | [team-mirae/bada-ime](https://github.com/team-mirae/bada-ime) | **IME**: bada ime's engine (`engine/`, prefix `bada`), the reference the standard is taken from. It also ships wrappers: the macOS shell, which links `libbada.a`, and a web simulator |
+| [team-mirae/bada-enigma](https://github.com/team-mirae/bada-enigma) | **IME**: a joke engine whose henkan mode types through an Enigma machine, also compiled to WebAssembly for a [web page](https://enigma.sjun.me/) |
 | [team-mirae/bada-windows](https://github.com/team-mirae/bada-windows) | **Wrapper**: a Windows text service that runs bada-compatible engines |
+| [team-mirae/bada-linux](https://github.com/team-mirae/bada-linux) | **Wrapper**: a Fcitx5 addon and an IBus engine that run bada-compatible engines on Linux |
 | [team-mirae/superkeyboard](https://github.com/team-mirae/superkeyboard) | **Wrapper**: a headless typing robot that loads engines from a manifest and drives them over REST and MCP |
 | this repository's `shout` | **IME**: the template's example engine ([below](#the-template)) |
 
