@@ -23,11 +23,14 @@ jobs:
         with:
           repository: team-mirae/superkeyboard
           path: superkeyboard
-      - name: shout in superkeyboard
+      - name: shout and rtl in superkeyboard
         run: |
           (cd superkeyboard && cargo build --release)
-          ./superkeyboard/target/release/superkeyboard imes/shout.json > server.log 2>&1 &
+          ./superkeyboard/target/release/superkeyboard imes/shout.json imes/rtl.json > server.log 2>&1 &
           for i in $(seq 1 60); do curl -sf http://127.0.0.1:8790/imes >/dev/null && break; sleep 1; done
           got=$(curl -s http://127.0.0.1:8790/run -H 'content-type: application/json' \
             -d '{"ime":"shout","keys":"h e l l o Space w o r l d Tab Enter"}' | jq -r .committed)
           test "$got" = "$(printf 'HELLO world\n')" || { cat server.log; echo "got: $got"; exit 1; }
+          got=$(curl -s http://127.0.0.1:8790/run -H 'content-type: application/json' \
+            -d '{"ime":"rtl","keys":"h e l l o Tab Enter"}' | jq -r .committed)
+          test "$got" = "$(printf '\u202ehello\u202c\n')" || { cat server.log; echo "got: $got"; exit 1; }

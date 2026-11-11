@@ -7,7 +7,8 @@ what it types (the **host**: bada ime's macOS shell and web simulator, superkeyb
 `engine/src/ffi.rs`), written down so other engines can follow it. It is the same as
 superkeyboard's "IME contract, version 1" (`team-mirae/superkeyboard`, `docs/ime-contract.md`),
 which was written from bada ime 0.1.6; the ABI did not change between 0.1.6 and 0.2.0. (0.2.0's
-Caps Lock is its macOS shell's, not the engine's: §7.7.) A host written for bada ime 0.2.0 can load
+Caps Lock is its macOS shell's, not the engine's: §7.7.) v1.1 and v1.2 add only optional things
+(§1). A host written for bada ime 0.2.0 can load
 any bada-compatible v1 engine by changing the symbol prefix.
 
 The words **must**, **should** and **may** are used as in RFC 2119. In this repository,
@@ -31,6 +32,9 @@ The words **must**, **should** and **may** are used as in RFC 2119. In this repo
 - **v1**: bada ime 0.2.0. This document.
 - **v1.1**: v1 and the optional `P_state` (§12). A v1 host needs nothing new; a v1.1 host checks
   for `P_state` as for any optional function.
+- **v1.2**: v1.1 and the optional `direction` of Outputs (§6) and of the state (§12), for
+  right-to-left IMEs. Missing, it is `"ltr"`: every v1 and v1.1 engine is a v1.2 engine, and a v1 or
+  v1.1 host ignores the field.
 - A new **required** function, a changed signature, or a changed meaning of a field or function is a
   new major version (v2). New **optional** functions and new Output fields are not: v1 hosts ignore
   them, and v1 engines don't have to provide them.
@@ -139,8 +143,22 @@ is its default); bada ime writes all of them.
 | `notes` | string[] | `[]` | Per row: a note beside it (romaji, a reading). Empty when no row has one |
 | `japanese` | bool[] | `[]` | Per row: draw in a Japanese font. Empty when no row needs it |
 | `need_selection` | string \| null | null | The engine needs the host's selected text to finish (bada: `"hanja"`, `"full"`, `"half"`); the host answers with `P_host_selection` |
+| `direction` | `"ltr"` \| `"rtl"` | `"ltr"` | v1.2. The writing direction of this Output's `commit`, `preedit` and `menu` rows (§6.1) |
 
 Engines may add fields; hosts ignore fields they don't know.
+
+### 6.1 Direction
+
+**v1.2, optional.** An engine for a right-to-left script says so with `direction: "rtl"`.
+
+- Text is always in **logical order** (the order it is typed and stored), and positions are counted
+  in it (§4). `direction` changes how the host **draws**, never what it inserts: the base direction
+  of the preedit and of the menu rows, and which side the menu is aligned to.
+- An engine **should** write it on every Output whose text is right to left; LTR engines leave it
+  out. A reader takes a missing field, or any value but `"rtl"`, as `"ltr"`.
+- A host that can't draw right to left ignores it; the text is the same. An engine that must look
+  right to left even there may embed bidi controls in its text (this repository's `rtl` example
+  offers its letters wrapped in U+202E … U+202C, with `direction: "ltr"`).
 
 ## 7. What the host does
 
@@ -161,6 +179,7 @@ apply(out):
   else if something is marked:
       delete the marked text
   show out.menu, out.selected, out.zero
+  draw the preedit and the menu in out.direction (v1.2, §6.1)
   if out.need_selection and this is not already the answer to one:
       apply(P_host_selection(selected text if nothing is marked, else ""))   # once, never deeper
 ```
@@ -272,6 +291,7 @@ Hosts that load engines at run time describe each with a JSON manifest. superkey
 - [ ] `P_set_settings("{}")` gives the defaults, and invalid JSON the same.
 - [ ] Nothing panics or unwinds across the boundary.
 - [ ] With `P_state`: it changes nothing, and its `staged` is the `commit` `P_flush` would return.
+- [ ] `direction`, where written, is `"ltr"` or `"rtl"`.
 
 `tests/conformance.rs` checks these through the C ABI.
 
@@ -307,13 +327,15 @@ read it through the wrapper, never through the engine.
  "need_selection": null}
 ```
 
+An RTL engine's state also has `"direction": "rtl"` (v1.2).
+
 | Field | Type | Meaning |
 |---|---|---|
 | `format` | string | `"bada-compatible-state/1"`. A reader checks it; a new major format is a new string |
 | `mode` | `"muhenkan"` \| `"henkan"` \| null | The mode last set by `P_set_mode`; null before the first |
 | `profile` | string \| null | The henkan profile in use (§8.1); null if the engine has none |
 | `staged` | string | **What `P_flush` would commit now**: the text as it would be typed, not the keys or tokens behind it. `""`: nothing is staged |
-| `preedit`, `menu`, `selected`, `zero`, `horizontal` | | As the last Output left them (§6) |
+| `preedit`, `menu`, `selected`, `zero`, `horizontal`, `direction` | | As the last Output left them (§6; `direction` v1.2, missing: `"ltr"`) |
 | `need_selection` | string \| null | The engine is waiting for `P_host_selection` |
 
 - An engine that exports `P_state` **must** keep `staged` exact, in either mode: it is the `commit`

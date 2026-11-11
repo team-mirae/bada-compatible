@@ -11,7 +11,7 @@
 
 use std::sync::Arc;
 
-use super::{Ime, Key, KeyEvent, Mode, Mods, Output};
+use super::{Direction, Ime, Key, KeyEvent, Mode, Mods, Output};
 
 /// The henkan profile かな selects (bada spec §6.6).
 pub const MAC_KANA: &str = "mac-kana";
@@ -112,6 +112,8 @@ pub struct Host<I: Ime> {
     menu: Vec<String>,
     selected: usize,
     zero: usize,
+    /// The direction of the last Output: how a real host would draw the preedit and menu.
+    direction: Direction,
     mode: Mode,
     profile: String,
     /// Every Output the host applied, in order (cleared by nothing: tests read it).
@@ -135,6 +137,7 @@ impl<I: Ime> Host<I> {
             menu: Vec::new(),
             selected: 0,
             zero: 0,
+            direction: Direction::Ltr,
             mode,
             profile: MAC_KANA.to_string(),
             outputs: Vec::new(),
@@ -167,6 +170,11 @@ impl<I: Ime> Host<I> {
     /// The highlighted entry, signed: 0 is the top-ranked reading, negatives are script forms.
     pub fn entry(&self) -> isize {
         self.selected as isize - self.zero as isize
+    }
+
+    /// The direction the last Output asked for (spec §6, v1.2). The text itself is logical.
+    pub fn direction(&self) -> Direction {
+        self.direction
     }
 
     pub fn mode(&self) -> Mode {
@@ -300,6 +308,7 @@ impl<I: Ime> Host<I> {
         self.menu = out.menu.clone();
         self.selected = out.selected;
         self.zero = out.zero;
+        self.direction = out.direction;
         let need = out.need_selection.is_some() && !answering;
         self.outputs.push(out);
         if need {

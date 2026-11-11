@@ -105,7 +105,12 @@ pub fn new<I: Ime>(data: *const I::Data) -> *mut Handle<I> {
                 Arc::from_raw(data)
             }
         };
-        Box::into_raw(Box::new(Handle { ime: I::new(data), reply: CString::default(), mode: None, shown: Output::default() }))
+        Box::into_raw(Box::new(Handle {
+            ime: I::new(data),
+            reply: CString::default(),
+            mode: None,
+            shown: Output::default(),
+        }))
     })
 }
 
@@ -180,6 +185,7 @@ pub fn state<I: Report>(h: *mut Handle<I>) -> *const c_char {
             zero: shown.zero,
             horizontal: shown.horizontal,
             need_selection: shown.need_selection.clone(),
+            direction: shown.direction,
         })
     });
     h.reply = CString::new(text).unwrap_or_default();

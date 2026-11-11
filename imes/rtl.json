@@ -1,0 +1,9 @@
+{
+  "name": "rtl",
+  "description": "rtl (bada-compatible v1.2 example): henkan mode types English right to left. The first row is the letters with direction \"rtl\"; Tab offers them wrapped in U+202E…U+202C (direction \"ltr\") for fields that ignore direction.",
+  "root": "..",
+  "library": "target/release/libshout.{ext}",
+  "prefix": "rtl",
+  "mode": "henkan",
+  "keyboard": "jis"
+}
