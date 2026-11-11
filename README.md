@@ -19,6 +19,7 @@ the language keys and Caps Lock. Any wrapper that runs bada's engine can run you
 | [team-mirae/bada-linux](https://github.com/team-mirae/bada-linux) | **Wrapper**: a Fcitx5 addon and an IBus engine that run bada-compatible engines on Linux |
 | [team-mirae/superkeyboard](https://github.com/team-mirae/superkeyboard) | **Wrapper**: a headless typing robot that loads engines from a manifest and drives them over REST and MCP |
 | this repository's `shout` | **IME**: the template's example engine ([below](#the-template)) |
+| this repository's `rtl` | **IME**: a right-to-left example: henkan types English right to left (v1.2 `direction`) |
 
 ## The standard
 
@@ -29,6 +30,7 @@ document disagree, one of them is fixed in the same change.
 |---|---|
 | **v1** | The C ABI of bada ime 0.2.0's engine: five required functions, plus optional ones a wrapper looks up with `dlsym` |
 | **v1.1** | v1, plus the optional, read-only `P_state` (§12) |
+| **v1.2** | v1.1, plus the optional `direction` of Outputs and state, for right-to-left IMEs (§6.1) |
 
 What every engine and wrapper should know, in short:
 
@@ -40,6 +42,9 @@ What every engine and wrapper should know, in short:
   `{"key": "KeyA", "shift": true}` (§5).
 - **Outputs** say what to commit, what to mark as the preedit, the candidate menu, and whether the
   key was consumed (§6). The wrapper applies them all the same way (§7.1).
+- **Direction** (v1.2): an RTL engine adds `"direction": "rtl"` to its Outputs. Text stays in
+  logical order; the wrapper only draws the preedit and menu right to left. Missing means `"ltr"`
+  (§6.1).
 - **Two modes**: `0` muhenkan (keys type directly or pass to the app) and `1` henkan (keys compose,
   then commit). The wrapper switches them with its language keys (§7.4).
 - **Caps Lock belongs to the wrapper.** The engine never sees it: events carry no Caps Lock state,
@@ -87,6 +92,7 @@ cargo build --release          # target/release/libshout.{dylib,so,a}
 | `tests/shout.rs` | Behaviour, typed through `compat::host::Host` | Replace |
 | `tests/conformance.rs` | The checklist (§10), through the C ABI | Keep; change its two marked lines |
 | `tests/export.rs` | Every `export!` option, with a small IME | Keep; it's also the example for data |
+| `src/rtl_ime.rs`, `tests/rtl.rs`, `include/rtl.h`, `imes/rtl.json` | **rtl**, the right-to-left example, exported from the same library under the prefix `rtl` (`mod rtl` in `src/lib.rs`) | Delete, or keep as the model for an RTL IME |
 | `imes/shout.json` | superkeyboard's manifest (§9) | Rename |
 
 ## Make a new IME
@@ -129,6 +135,7 @@ cargo build --release          # target/release/libshout.{dylib,so,a}
 4. In `tests/conformance.rs`, point `abi` at your `ffi` module and `STAGE` at keys that compose
    something. Remove the checks for optional functions you don't export. Run `cargo test`.
 5. Update `include/`, `imes/`, this README and `CLAUDE.md`.
+6. A right-to-left IME sets `direction: Direction::Rtl` on its Outputs; see `src/rtl_ime.rs`.
 
 Every exported function catches panics. An engine that panics answers `{}` for that call, which
 means nothing is consumed, and nothing unwinds into the wrapper.

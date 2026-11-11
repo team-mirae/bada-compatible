@@ -153,7 +153,11 @@ fn state_reports_what_flush_would_commit() {
     let out = e.stage();
     let s = state(e.0);
     assert_ne!(s.staged, "", "henkan with a preedit has something staged");
-    assert_eq!((&s.preedit, &s.menu, s.selected), (&out.preedit, &out.menu, out.selected), "display as the last Output");
+    assert_eq!(
+        (&s.preedit, &s.menu, s.selected),
+        (&out.preedit, &out.menu, out.selected),
+        "display as the last Output"
+    );
     assert_eq!(state(e.0), s, "asking changes nothing");
     key(e.0, "Tab");
     let s = state(e.0);
@@ -179,4 +183,24 @@ fn optional_functions_answer_json() {
     assert!(json(abi::catalog(e0)).is_object());
     output(abi::host_selection(e0, s("").as_ptr()));
     output(abi::host_selection(e0, std::ptr::null()));
+}
+
+#[test]
+fn direction_if_written_is_ltr_or_rtl() {
+    // v1.2: `direction` is optional; an Output without it, or with a value a reader doesn't know,
+    // is LTR.
+    use shout::compat::Direction;
+    let e = Engine::new();
+    e.stage();
+    let replies = [json(abi::key(e.0, s(r#"{"key":"KeyC"}"#).as_ptr())), json(abi::state(e.0)), json(abi::flush(e.0))];
+    for reply in replies {
+        if let Some(d) = reply.get("direction") {
+            assert!(d == "ltr" || d == "rtl", "direction {d}");
+        }
+    }
+    let read = |text: &str| serde_json::from_str::<Output>(text).unwrap().direction;
+    assert_eq!(read("{}"), Direction::Ltr);
+    assert_eq!(read(r#"{"direction":"rtl"}"#), Direction::Rtl);
+    assert_eq!(read(r#"{"direction":"ttb"}"#), Direction::Ltr);
+    assert!(!serde_json::to_string(&Output::default()).unwrap().contains("direction"), "LTR isn't written");
 }

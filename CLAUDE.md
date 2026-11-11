@@ -5,15 +5,15 @@
   `docs/bada-compatible-v1.md`; if code and that doc disagree, fix one in the same change.
 - `src/compat/` is the contract layer, shared by every IME made from the template: a change there is a
   contract change (versioning rules in the doc's §1). `src/shout.rs` is the example IME; new IMEs
-  replace it.
+  replace it. `src/rtl_ime.rs` (prefix `rtl`, same library) is the right-to-left example (v1.2 `direction`).
 - Keep it compatible with superkeyboard (`../superkeyboard`, `docs/ime-contract.md` there):
-  `imes/shout.json` must load there.
+  `imes/shout.json` and `imes/rtl.json` must load there.
 - Names: bada (lowercase); muhenkan / henkan mode.
 - License: CC0, repository and example IMEs alike.
 
 ## Building
 
-- `cargo test` (shout behaviour, v1 conformance through the C ABI, every `export!` option).
+- `cargo test` (shout and rtl behaviour, v1 conformance through the C ABI, every `export!` option).
 - `cargo clippy --all-targets` stays clean.
 - `cargo build --release` → `target/release/libshout.{dylib,a}`; then
   `../superkeyboard/target/release/superkeyboard imes/shout.json` for an end-to-end check.

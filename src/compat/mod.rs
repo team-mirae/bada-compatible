@@ -17,9 +17,10 @@ use serde_json::Value;
 
 pub use key::{Key, KeyEvent, Mods};
 
-/// The contract version this layer implements (v1.1: v1 with the optional `P_state`).
+/// The contract version this layer implements (v1.2: v1 with the optional `P_state` (v1.1) and
+/// the optional `direction` of Outputs and State).
 pub const VERSION: u32 = 1;
-pub const MINOR: u32 = 1;
+pub const MINOR: u32 = 2;
 
 /// The `format` of every [`State`] (spec §12).
 pub const STATE_FORMAT: &str = "bada-compatible-state/1";
@@ -43,6 +44,30 @@ impl Mode {
             Mode::Muhenkan => 0,
             Mode::Henkan => 1,
         }
+    }
+}
+
+/// The writing direction of an Output's text (spec §6, v1.2). Text is always in logical order;
+/// this only says how the host draws it. Missing, or any value but `"rtl"`, reads as [`Direction::Ltr`].
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase", from = "String")]
+pub enum Direction {
+    /// Left to right: every v1 / v1.1 engine.
+    #[default]
+    Ltr,
+    /// Right to left.
+    Rtl,
+}
+
+impl Direction {
+    pub fn is_ltr(&self) -> bool {
+        *self == Direction::Ltr
+    }
+}
+
+impl From<String> for Direction {
+    fn from(value: String) -> Self {
+        if value == "rtl" { Direction::Rtl } else { Direction::Ltr }
     }
 }
 
@@ -74,6 +99,10 @@ pub struct Output {
     /// The engine needs the host's selected text to finish; the host answers with
     /// `host_selection`. The value names what the engine will do with it.
     pub need_selection: Option<String>,
+    /// v1.2: the direction of `commit`, `preedit` and the menu rows. Not written when LTR, so an
+    /// LTR engine's Outputs are exactly v1.1's.
+    #[serde(skip_serializing_if = "Direction::is_ltr")]
+    pub direction: Direction,
 }
 
 impl Output {
@@ -111,6 +140,9 @@ pub struct State {
     pub horizontal: bool,
     /// The engine is waiting for the host's selection.
     pub need_selection: Option<String>,
+    /// v1.2: as the last Output left it. Not written when LTR.
+    #[serde(skip_serializing_if = "Direction::is_ltr")]
+    pub direction: Direction,
 }
 
 /// An [`Ime`] that reports its state: needed for `state` in `export!`'s `optional`.
