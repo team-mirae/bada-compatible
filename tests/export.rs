@@ -6,7 +6,7 @@ use std::ffi::{CStr, CString, c_char};
 use std::sync::{Arc, RwLock};
 
 use serde_json::{Value, json};
-use shout::compat::{Ime, KeyEvent, Mode, NoSettings, Output};
+use shout::compat::{Ime, KeyEvent, Mode, NoSettings, Output, Report};
 
 /// Words to complete, from buffer 0; a greeting, from buffer 1.
 #[derive(Default)]
@@ -37,6 +37,16 @@ impl Full {
 
     fn shown(&self) -> String {
         self.menu().into_iter().next().unwrap_or_else(|| self.staged.clone())
+    }
+}
+
+impl Report for Full {
+    fn staged(&self) -> String {
+        self.shown()
+    }
+
+    fn profile(&self) -> Option<String> {
+        Some(self.profile.clone())
     }
 }
 
@@ -98,7 +108,7 @@ shout::export! {
     prefix: "full",
     ime: Full,
     data: [(words, words_len), (greeting, greeting_len)],
-    optional: [set_profile, dictionary_load],
+    optional: [set_profile, dictionary_load, state],
 }
 
 fn out(p: *const c_char) -> Output {
@@ -127,6 +137,8 @@ fn everything() {
     let name = CString::new("katakana").unwrap();
     let o = out(ffi::set_profile(e, name.as_ptr()));
     assert_eq!((o.commit.as_str(), o.notes.as_slice()), ("apple", &["katakana".to_string(), "hello".into()][..]));
+    let state: Value = serde_json::from_str(unsafe { CStr::from_ptr(ffi::state(e)) }.to_str().unwrap()).unwrap();
+    assert_eq!((&state["profile"], &state["staged"], &state["mode"]), (&json!("katakana"), &json!(""), &Value::Null));
     let bad = CString::new("nope").unwrap();
     assert_eq!(out(ffi::set_profile(e2, bad.as_ptr())).notes[0], "mac-kana");
 

@@ -17,8 +17,12 @@ use serde_json::Value;
 
 pub use key::{Key, KeyEvent, Mods};
 
-/// The contract version this layer implements.
+/// The contract version this layer implements (v1.1: v1 with the optional `P_state`).
 pub const VERSION: u32 = 1;
+pub const MINOR: u32 = 1;
+
+/// The `format` of every [`State`] (spec §12).
+pub const STATE_FORMAT: &str = "bada-compatible-state/1";
 
 /// The two modes (spec §2). `set_mode(0)` is muhenkan; any other value is henkan.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -81,6 +85,43 @@ impl Output {
     /// The key goes to the app, after `commit` is inserted.
     pub fn pass(commit: String) -> Output {
         Output { commit, ..Output::default() }
+    }
+}
+
+/// What the engine reports about itself, for its wrapper (spec §12): `P_state`. Read-only: asking
+/// changes nothing. The layer fills `mode` and the display fields (from the last Output); the IME
+/// says what's staged ([`Report`]).
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
+pub struct State {
+    /// [`STATE_FORMAT`].
+    pub format: String,
+    /// `"muhenkan"` or `"henkan"`; null before the first `P_set_mode`.
+    pub mode: Option<String>,
+    /// The henkan profile in use; null if the engine has none.
+    pub profile: Option<String>,
+    /// The text `P_flush` would commit now, as it would be typed (not the keys or tokens behind
+    /// it). `""`: nothing is staged.
+    pub staged: String,
+    /// As the last Output left them.
+    pub preedit: String,
+    pub menu: Vec<String>,
+    pub selected: usize,
+    pub zero: usize,
+    pub horizontal: bool,
+    /// The engine is waiting for the host's selection.
+    pub need_selection: Option<String>,
+}
+
+/// An [`Ime`] that reports its state: needed for `state` in `export!`'s `optional`.
+pub trait Report: Ime {
+    /// What [`Ime::flush`] would commit now, without committing: the text as it would be typed.
+    /// `""` when nothing is staged. Must not change anything.
+    fn staged(&self) -> String;
+
+    /// The henkan profile in use, if the IME has profiles.
+    fn profile(&self) -> Option<String> {
+        None
     }
 }
 

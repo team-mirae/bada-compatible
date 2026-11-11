@@ -5,7 +5,7 @@ use std::ffi::{CStr, CString, c_char};
 use std::thread;
 
 use serde_json::Value;
-use shout::compat::Output;
+use shout::compat::{Output, STATE_FORMAT, State};
 
 // ── For a new IME: its `ffi` module, and keys that stage something in henkan mode. ──
 use shout::ffi as abi;
@@ -138,6 +138,33 @@ fn null_engine_is_null() {
     assert!(abi::key(std::ptr::null_mut(), s(r#"{"key":"KeyA"}"#).as_ptr()).is_null());
     assert!(abi::flush(std::ptr::null_mut()).is_null());
     abi::free(std::ptr::null_mut());
+}
+
+fn state(e: *mut abi::Engine) -> State {
+    serde_json::from_value(json(abi::state(e))).expect("a State")
+}
+
+// Remove this test if your IME doesn't export `state`.
+#[test]
+fn state_reports_what_flush_would_commit() {
+    let e = Engine::new();
+    let idle = state(e.0);
+    assert_eq!((idle.format.as_str(), idle.mode.as_deref(), idle.staged.as_str()), (STATE_FORMAT, Some("henkan"), ""));
+    let out = e.stage();
+    let s = state(e.0);
+    assert_ne!(s.staged, "", "henkan with a preedit has something staged");
+    assert_eq!((&s.preedit, &s.menu, s.selected), (&out.preedit, &out.menu, out.selected), "display as the last Output");
+    assert_eq!(state(e.0), s, "asking changes nothing");
+    key(e.0, "Tab");
+    let s = state(e.0);
+    assert_eq!(output(abi::flush(e.0)).commit, s.staged, "staged is what P_flush commits");
+    assert_eq!(state(e.0).staged, "");
+    output(abi::set_mode(e.0, 0));
+    assert_eq!(state(e.0).mode.as_deref(), Some("muhenkan"));
+    let fresh = abi::new(std::ptr::null());
+    assert_eq!(state(fresh).mode, None, "no mode before the first P_set_mode");
+    abi::free(fresh);
+    assert!(abi::state(std::ptr::null_mut()).is_null());
 }
 
 #[test]

@@ -14,5 +14,5 @@ export! {
     prefix: "shout",
     ime: crate::Shout,
     data: [],
-    optional: [set_settings, host_selection, catalog],
+    optional: [set_settings, host_selection, catalog, state],
 }

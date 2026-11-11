@@ -22,5 +22,6 @@ const char *shout_flush(ShoutEngine *engine);
 const char *shout_set_settings(ShoutEngine *engine, const char *settings_json);  // → settings in effect
 const char *shout_host_selection(ShoutEngine *engine, const char *text);
 const char *shout_catalog(ShoutEngine *engine);
+const char *shout_state(ShoutEngine *engine);  // read-only: what's staged, mode, menu (§12)
 
 #endif

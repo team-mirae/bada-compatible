@@ -43,7 +43,7 @@ cargo build --release            # target/release/libshout.{dylib,so,a}
        fn set_mode(&mut self, mode: Mode) -> Output { … }   // commit what's staged
        fn flush(&mut self) -> Output { … }                  // commit what's staged
        // optional: data, set_settings + settings, set_profile, host_selection, catalog,
-       // dictionary_load
+       // dictionary_load; and impl Report (staged) for `state`, which wrappers expose (§12)
    }
    ```
 

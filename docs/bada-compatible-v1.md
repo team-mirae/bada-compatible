@@ -24,10 +24,13 @@ The words **must**, **should** and **may** are used as in RFC 2119. In this repo
 - [9. The manifest](#9-the-manifest)
 - [10. Conformance](#10-conformance)
 - [11. Where bada ime 0.2.0 is more specific](#11-where-bada-ime-020-is-more-specific)
+- [12. State](#12-state)
 
 ## 1. Versions
 
 - **v1**: bada ime 0.2.0. This document.
+- **v1.1**: v1 and the optional `P_state` (§12). A v1 host needs nothing new; a v1.1 host checks
+  for `P_state` as for any optional function.
 - A new **required** function, a changed signature, or a changed meaning of a field or function is a
   new major version (v2). New **optional** functions and new Output fields are not: v1 hosts ignore
   them, and v1 engines don't have to provide them.
@@ -76,6 +79,7 @@ Hosts look each up (`dlsym`) and do without it when it's missing. Export only wh
 | `P_catalog` | `const char *P_catalog(Engine *e)` | JSON describing what the engine offers (§8.3) |
 | `P_dictionary_load` | `char *P_dictionary_load(const char *json)` | Process-wide (no engine). Loads a user dictionary; `""` clears it. A JSON summary the **caller frees** with `P_string_free` |
 | `P_string_free` | `void P_string_free(char *s)` | Frees a string from `P_dictionary_load` |
+| `P_state` | `const char *P_state(Engine *e)` | v1.1. **The engine's state**, as JSON (§12; not an Output). Read-only: changes nothing |
 
 ## 4. Memory and threads
 
@@ -267,6 +271,7 @@ Hosts that load engines at run time describe each with a JSON manifest. superkey
 - [ ] Engines on one `Data` work concurrently on different threads.
 - [ ] `P_set_settings("{}")` gives the defaults, and invalid JSON the same.
 - [ ] Nothing panics or unwinds across the boundary.
+- [ ] With `P_state`: it changes nothing, and its `staged` is the `commit` `P_flush` would return.
 
 `tests/conformance.rs` checks these through the C ABI.
 
@@ -288,3 +293,52 @@ Behaviour v1 doesn't require, but a bada-like engine should follow (bada `docs/s
   and ⌃ layers moved up one index (now 3–6).
 - **Data**: `bada_data_new` takes 11 buffers (ko-words, en-words, hanja, oecd, ja-words, kanji,
   ko-jamo LM, symbols, emoji, unicode-names, en-ko), and `bada_new(NULL)` returns NULL.
+
+## 12. State
+
+**v1.1, optional.** `P_state` is how an engine reports itself to its **wrapper** (the host: bada
+ime's macOS shell, bada-windows' text service, superkeyboard). It's for **reading**: other programs
+that want to know what the IME is doing (Hammerspoon, Karabiner-Elements, AutoHotkey, a status bar)
+read it through the wrapper, never through the engine.
+
+```json
+{"format": "bada-compatible-state/1", "mode": "henkan", "profile": "mac-kana", "staged": "한국어",
+ "preedit": "한국어", "menu": ["한국어", "韓國語"], "selected": 0, "zero": 0, "horizontal": false,
+ "need_selection": null}
+```
+
+| Field | Type | Meaning |
+|---|---|---|
+| `format` | string | `"bada-compatible-state/1"`. A reader checks it; a new major format is a new string |
+| `mode` | `"muhenkan"` \| `"henkan"` \| null | The mode last set by `P_set_mode`; null before the first |
+| `profile` | string \| null | The henkan profile in use (§8.1); null if the engine has none |
+| `staged` | string | **What `P_flush` would commit now**: the text as it would be typed, not the keys or tokens behind it. `""`: nothing is staged |
+| `preedit`, `menu`, `selected`, `zero`, `horizontal` | | As the last Output left them (§6) |
+| `need_selection` | string \| null | The engine is waiting for `P_host_selection` |
+
+- An engine that exports `P_state` **must** keep `staged` exact, in either mode: it is the `commit`
+  of a `P_flush` called instead, character for character. It may differ from `preedit`, which is
+  only what's drawn: when a flush would commit nothing (bada: a menu open on the host's selection,
+  not on staged text), `staged` is `""`, whatever shows.
+- `P_state` changes nothing; calling it any number of times between two other calls gives the same
+  answer. Its string lives like any other reply (§4).
+- Engines may add fields; readers ignore fields they don't know.
+
+### 12.1 What the wrapper does with it
+
+How, and whether, a wrapper exposes the state is the wrapper's. Exposing it is **recommended**: it
+is what lets users script around the IME. A wrapper that does:
+
+- **should** call `P_state` after every call that returns an Output, and publish the object as is,
+  adding its own fields under a `host` key (for example the app in focus, Caps Lock §7.7, its
+  version) so a reader never confuses the two;
+- **should** be read-only from outside: reading the state never changes the IME, and nothing a
+  reader does is fed back to the engine;
+- **should** publish nothing typed while the focused field is a password field (secure input): it
+  sets `staged`, `preedit` and `menu` to empty values and `host.secure` to true;
+- **should** use a channel the platform's scripting tools can read without a plugin, and document
+  it. For example: on macOS a JSON file rewritten atomically plus a distributed notification
+  (Hammerspoon: `hs.pathwatcher`, `hs.distributednotifications`; Karabiner: `set_variable` from a
+  script); on Windows a JSON file plus a registered window message, or a named pipe (AutoHotkey:
+  `FileRead`, `OnMessage`).
+

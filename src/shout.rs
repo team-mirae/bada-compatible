@@ -6,14 +6,15 @@
 //! commits and does nothing else; Backspace edits. In muhenkan nothing is consumed, except 半角/全角,
 //! which shouts the selection (the host's selection, through `need_selection`).
 //!
-//! It uses no data, and of the optional functions: settings, the catalog and the host's selection.
+//! It uses no data, and of the optional functions: settings, the catalog, the host's selection and
+//! its state.
 
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 
-use crate::compat::{Ime, Key, KeyEvent, Mode, Output};
+use crate::compat::{Ime, Key, KeyEvent, Mode, Output, Report};
 
 /// One way to write the letters: one menu row.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -93,10 +94,17 @@ impl Shout {
 
     /// What shows, unstaged.
     fn take(&mut self) -> String {
-        let shown = if self.letters.is_empty() { String::new() } else { self.shown() };
+        let shown = self.staged();
         self.letters.clear();
         self.row = 0;
         shown
+    }
+}
+
+impl Report for Shout {
+    /// What shows: the form on the selected row.
+    fn staged(&self) -> String {
+        if self.letters.is_empty() { String::new() } else { self.shown() }
     }
 }
 
