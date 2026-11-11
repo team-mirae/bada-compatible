@@ -1,0 +1,9 @@
+{
+  "name": "shout",
+  "description": "shout (bada-compatible template): henkan mode types CAPITALS; Tab offers lowercase. Settings: {\"forms\": [\"upper\", \"lower\", \"title\"]}. 半角/全角 in muhenkan shouts the selection.",
+  "root": "..",
+  "library": "target/release/libshout.{ext}",
+  "prefix": "shout",
+  "mode": "henkan",
+  "keyboard": "jis"
+}

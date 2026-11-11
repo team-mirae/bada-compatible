@@ -1,0 +1,24 @@
+[package]
+# A new IME: rename the package, the [lib] name and the prefix in src/lib.rs (README.md, "Make a new IME").
+name = "shout-ime"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+license = "CC0-1.0"
+publish = false
+description = "shout: the bada-compatible v1 IME engine template. Henkan mode types capitals."
+
+[lib]
+name = "shout"
+# rlib: tests and Rust hosts. cdylib: superkeyboard and other dlopen hosts. staticlib: a native shell
+# (bada ime's macOS shell links libbada.a).
+crate-type = ["rlib", "cdylib", "staticlib"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+opt-level = "s"
+lto = true
+# Panics are caught at the C boundary (src/compat/ffi.rs), so unwinding stays on.

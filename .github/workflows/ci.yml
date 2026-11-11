@@ -1,0 +1,33 @@
+# Tests the template and its example IME, then loads it in superkeyboard (team-mirae/superkeyboard).
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo clippy --all-targets -- -D warnings
+      - run: cargo test --release
+      - run: cargo build --release
+      - uses: actions/checkout@v7
+        with:
+          repository: team-mirae/superkeyboard
+          path: superkeyboard
+      - name: shout in superkeyboard
+        run: |
+          (cd superkeyboard && cargo build --release)
+          ./superkeyboard/target/release/superkeyboard imes/shout.json > server.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:8790/imes >/dev/null && break; sleep 1; done
+          got=$(curl -s http://127.0.0.1:8790/run -H 'content-type: application/json' \
+            -d '{"ime":"shout","keys":"h e l l o Space w o r l d Tab Enter"}' | jq -r .committed)
+          test "$got" = "$(printf 'HELLO world\n')" || { cat server.log; echo "got: $got"; exit 1; }
