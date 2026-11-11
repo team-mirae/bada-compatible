@@ -58,7 +58,7 @@ impl Drop for Engine {
 #[test]
 fn unknown_keys_and_bad_json_pass_on() {
     let e = Engine::new();
-    for code in ["NoSuchKey", "", "Other", "F13", "MediaPlayPause"] {
+    for code in ["NoSuchKey", "", "Other", "F13", "MediaPlayPause", "CapsLock"] {
         assert!(!key(e.0, code).consumed, "{code:?}");
     }
     for bad in ["", "{", "null", r#"{"shift":true}"#, r#"{"key":7}"#] {

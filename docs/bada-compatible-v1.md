@@ -6,8 +6,9 @@ what it types (the **host**: bada ime's macOS shell and web simulator, superkeyb
 **v1 is the C ABI of bada ime 0.2.0's engine** (`team-mirae/bada-ime`, `engine/include/bada.h`,
 `engine/src/ffi.rs`), written down so other engines can follow it. It is the same as
 superkeyboard's "IME contract, version 1" (`team-mirae/superkeyboard`, `docs/ime-contract.md`),
-which was written from bada ime 0.1.6; the ABI did not change between 0.1.6 and 0.2.0. A host
-written for bada ime 0.2.0 can load any bada-compatible v1 engine by changing the symbol prefix.
+which was written from bada ime 0.1.6; the ABI did not change between 0.1.6 and 0.2.0. (0.2.0's
+Caps Lock is its macOS shell's, not the engine's: §7.7.) A host written for bada ime 0.2.0 can load
+any bada-compatible v1 engine by changing the symbol prefix.
 
 The words **must**, **should** and **may** are used as in RFC 2119. In this repository,
 `src/compat/` implements the engine side and `src/compat/host.rs` a minimal host.
@@ -113,6 +114,8 @@ Hosts look each up (`dlsym`) and do without it when it's missing. Export only wh
 - An engine must accept **any** string as `key`; a code it doesn't know is a key it doesn't handle:
   commit what's staged if that's its rule, and `consumed: false`. Invalid JSON: likewise.
 - Key repeat is not modelled: every event is one press.
+- **Caps Lock is the host's** (§7.7). Events carry no Caps Lock state and hosts don't send
+  `CapsLock`; an engine that gets it treats it as a key it doesn't know.
 
 ## 6. The Output object
 
@@ -173,7 +176,8 @@ So **commit, then act** (Space, Enter, Esc with a preedit) is one Output with `c
 ### 7.3 Keys passed on
 
 The app does what it does. A plain text field: ⌘ / ⌃ / ⌥ combinations do nothing (shortcuts,
-option characters); a character key types its JIS legend (⇧: the shifted one); `Space`, `Tab`,
+option characters); a character key types its JIS legend (⇧: the shifted one; with Caps Lock on, in
+capitals, ⇧ or not); `Space`, `Tab`,
 `Enter` insert `" "`, `"\t"`, `"\n"`; `Backspace` / `Delete` delete the selection or the character
 before / after the caret; arrows, `Home`, `End` move the caret; anything else does nothing.
 
@@ -204,6 +208,21 @@ reply, which usually has `commit` with `replace_selection: true`.
 
 A click in the text or an edit by the app commits what's staged: the host calls `P_flush` and
 applies it before changing the field.
+
+### 7.7 Caps Lock
+
+The engine never sees Caps Lock: a host that handles it does so around `P_key`, as bada ime 0.2.0's
+shell does (bada `docs/spec.md` §6.7, §6.2; its web simulator does the same):
+
+- Caps Lock on affects only what the **app** types (§7.3): a passed-on character key is typed in
+  capitals. The engine gets the same events, so muhenkan keys it types itself and henkan
+  composition are unchanged (henkan ignores Caps Lock).
+- A host may make Caps Lock a mode key: bada's default **toggle** switches mode, as ⌃⌥⇧ `Lang1`
+  (§7.4), with `P_set_mode`; ⇧ ⌃ ⌥ ⌘ + Caps Lock is then Caps Lock, in muhenkan only. Its other
+  settings: **transient** (Caps Lock in muhenkan only, off when muhenkan is left) and **respect**
+  (Caps Lock everywhere).
+- bada's **UPPER_SNAKE** rule, in muhenkan with Caps Lock on: the host flushes (`P_flush`, applied)
+  and types `_` for `Space`, a space for ⌥`Space`, without calling `P_key`.
 
 ## 8. Profiles, settings, catalog, dictionary
 
@@ -263,5 +282,9 @@ Behaviour v1 doesn't require, but a bada-like engine should follow (bada `docs/s
 - **Muhenkan** (§6.2): consume only keys the engine types itself (bada: ⌥ + letter variants,
   半角/全角 on the selection).
 - **F6–F10** in henkan are the engine's (§6.5): swallowed unless bound.
+- **Caps Lock** (§6.7) is the shell's (§7.7 here). The Keyboard Viewer layouts the Mac app ships
+  (`mac/tools/make-keylayout.swift`) have a Caps Lock layer of their own: `qwerty.keylayout`
+  (muhenkan) shows ABC's capitals, `bada.keylayout` (henkan) bada's unshifted jamo; their ⌥, ⌘
+  and ⌃ layers moved up one index (now 3–6).
 - **Data**: `bada_data_new` takes 11 buffers (ko-words, en-words, hanja, oecd, ja-words, kanji,
   ko-jamo LM, symbols, emoji, unicode-names, en-ko), and `bada_new(NULL)` returns NULL.
