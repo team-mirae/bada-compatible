@@ -115,6 +115,7 @@ impl Ime for Rtl {
                 self.letters.pop();
                 self.moved(0)
             }
+            Key::Lang1 if m.ctrl => self.moved(self.row), // ⌃かな (v1.3): nothing to fix
             Key::Tab | Key::Lang1 if staged && !m.shift => self.moved((self.row + 1).min(last)),
             Key::ArrowDown if staged => self.moved((self.row + 1).min(last)),
             Key::Tab | Key::Lang1 | Key::ArrowUp if staged => self.moved(self.row.saturating_sub(1)),
