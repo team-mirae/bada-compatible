@@ -17,10 +17,10 @@ use serde_json::Value;
 
 pub use key::{Key, KeyEvent, Mods};
 
-/// The contract version this layer implements (v1.2: v1 with the optional `P_state` (v1.1) and
-/// the optional `direction` of Outputs and State).
+/// The contract version this layer implements (v1.3: v1 with the optional `P_state` (v1.1), the
+/// optional `direction` of Outputs and State (v1.2), and ⌃ `Lang1`, "fix what shows" (v1.3)).
 pub const VERSION: u32 = 1;
-pub const MINOR: u32 = 2;
+pub const MINOR: u32 = 3;
 
 /// The `format` of every [`State`] (spec §12).
 pub const STATE_FORMAT: &str = "bada-compatible-state/1";

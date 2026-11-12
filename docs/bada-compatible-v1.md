@@ -7,7 +7,7 @@ what it types (the **host**: bada ime's macOS shell and web simulator, superkeyb
 `engine/src/ffi.rs`), written down so other engines can follow it. It is the same as
 superkeyboard's "IME contract, version 1" (`team-mirae/superkeyboard`, `docs/ime-contract.md`),
 which was written from bada ime 0.1.6; the ABI did not change between 0.1.6 and 0.2.0. (0.2.0's
-Caps Lock is its macOS shell's, not the engine's: §7.7.) v1.1 and v1.2 add only optional things
+Caps Lock is its macOS shell's, not the engine's: §7.7.) v1.1, v1.2 and v1.3 add only optional things
 (§1). A host written for bada ime 0.2.0 can load
 any bada-compatible v1 engine by changing the symbol prefix.
 
@@ -35,6 +35,10 @@ The words **must**, **should** and **may** are used as in RFC 2119. In this repo
 - **v1.2**: v1.1 and the optional `direction` of Outputs (§6) and of the state (§12), for
   right-to-left IMEs. Missing, it is `"ltr"`: every v1 and v1.1 engine is a v1.2 engine, and a v1 or
   v1.1 host ignores the field.
+- **v1.3**: v1.2 and an optional key: in henkan, a host may send `Lang1` with ⌃ alone, **fix what
+  shows** (bada ime 0.3.1's ⌃かな, bada `docs/spec.md` §6.3), §7.4. An engine without that action
+  consumes it and changes nothing. A v1.2 engine reads it as `Lang1` (the next entry): a host should
+  send it only to an engine that has it, or accept that.
 - A new **required** function, a changed signature, or a changed meaning of a field or function is a
   new major version (v2). New **optional** functions and new Output fields are not: v1 hosts ignore
   them, and v1 engines don't have to provide them.
@@ -116,7 +120,7 @@ Hosts look each up (`dlsym`) and do without it when it's missing. Export only wh
 | 半角/全角 | `Backquote` |
 | Control | `Space`, `Enter`, `Backspace`, `Tab`, `Escape`, `ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight`, `Delete`, `Home`, `End` |
 | F keys | `F1`…`F12` (bada intercepts `F6`–`F10` in henkan) |
-| Language keys | `Lang1` (かな), `Lang2` (英数), `Convert` (変換), `Lang3` (カタカナ). Hosts handle them (§7.4) and send only `Lang1`, in henkan, as "next menu entry" (⇧: previous) |
+| Language keys | `Lang1` (かな), `Lang2` (英数), `Convert` (変換), `Lang3` (カタカナ). Hosts handle them (§7.4) and send only `Lang1`, in henkan, as "next menu entry" (⇧: previous; ⌃ alone, v1.3: fix what shows) |
 
 - The first 48 (number row through `IntlRo`) are the **JIS kana space**, where bada's layouts type.
 - An engine must accept **any** string as `key`; a code it doesn't know is a key it doesn't handle:
@@ -220,6 +224,7 @@ engine has it.
 | `Convert` (変換) / `Lang3` (カタカナ) | muhenkan | profile `henkan` / `katakana`, `P_set_mode(1)` |
 | `Convert` / `Lang3` | henkan, same profile | `P_key` `Lang1`: next entry |
 | `Convert` / `Lang3` | henkan, other profile | `P_set_profile(…)` |
+| ⌃ `Lang1` / `Convert` / `Lang3` (⌃ alone) | henkan | v1.3: `P_key({"key":"Lang1","ctrl":true})`: fix what shows. Muhenkan: nothing |
 
 ### 7.5 The host's selection
 
@@ -292,6 +297,7 @@ Hosts that load engines at run time describe each with a JSON manifest. superkey
 - [ ] Nothing panics or unwinds across the boundary.
 - [ ] With `P_state`: it changes nothing, and its `staged` is the `commit` `P_flush` would return.
 - [ ] `direction`, where written, is `"ltr"` or `"rtl"`.
+- [ ] ⌃ `Lang1` in henkan is consumed; an engine without "fix what shows" changes nothing (v1.3).
 
 `tests/conformance.rs` checks these through the C ABI.
 
@@ -301,7 +307,8 @@ Behaviour v1 doesn't require, but a bada-like engine should follow (bada `docs/s
 
 - **Henkan keys** (§6.3 there): Space, Enter, Esc and other keys commit what shows, then act; **Esc
   commits**, it doesn't cancel. ⇧Enter commits and does nothing else. Tab / ↓ / かな: next entry;
-  ⇧Tab / ↑ / ⇧かな: previous. With nothing staged, keys go to the app. ⌘ / ⌃ shortcuts commit, then
+  ⇧Tab / ↑ / ⇧かな: previous. ⌃かな (bada 0.3.1): fixes what shows, which stays staged, and the
+  keys after it start a reading of their own. With nothing staged, keys go to the app. ⌘ / ⌃ shortcuts commit, then
   pass.
 - **The menu** (§6.4): typing lands on entry 0; no wrap; committing commits the entry shown.
 - **Muhenkan** (§6.2): consume only keys the engine types itself (bada: ⌥ + letter variants,

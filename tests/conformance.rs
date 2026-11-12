@@ -204,3 +204,14 @@ fn direction_if_written_is_ltr_or_rtl() {
     assert_eq!(read(r#"{"direction":"ttb"}"#), Direction::Ltr);
     assert!(!serde_json::to_string(&Output::default()).unwrap().contains("direction"), "LTR isn't written");
 }
+
+#[test]
+fn control_lang1_is_consumed_and_keeps_the_text() {
+    // v1.3: ⌃ Lang1 in henkan, "fix what shows". Consumed; whether or not the engine fixes, the
+    // text that shows stays (an engine without the action changes nothing).
+    let e = Engine::new();
+    let shown = e.stage().preedit;
+    let out = output(abi::key(e.0, s(r#"{"key":"Lang1","ctrl":true}"#).as_ptr()));
+    assert!(out.consumed, "{out:?}");
+    assert_eq!((out.commit.as_str(), out.preedit.as_str()), ("", shown.as_str()));
+}
