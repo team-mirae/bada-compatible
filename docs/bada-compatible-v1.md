@@ -34,7 +34,9 @@ The words **must**, **should** and **may** are used as in RFC 2119. In this repo
   for `P_state` as for any optional function.
 - **v1.2**: v1.1 and the optional `direction` of Outputs (§6) and of the state (§12), for
   right-to-left IMEs. Missing, it is `"ltr"`: every v1 and v1.1 engine is a v1.2 engine, and a v1 or
-  v1.1 host ignores the field.
+  v1.1 host ignores the field. Also the optional host convention ⌃ `Lang1`, "fix what shows"
+  (§7.4): a host that doesn't send it loses nothing, and an engine that doesn't know it treats the
+  key as it did.
 - A new **required** function, a changed signature, or a changed meaning of a field or function is a
   new major version (v2). New **optional** functions and new Output fields are not: v1 hosts ignore
   them, and v1 engines don't have to provide them.
@@ -116,7 +118,7 @@ Hosts look each up (`dlsym`) and do without it when it's missing. Export only wh
 | 半角/全角 | `Backquote` |
 | Control | `Space`, `Enter`, `Backspace`, `Tab`, `Escape`, `ArrowUp`, `ArrowDown`, `ArrowLeft`, `ArrowRight`, `Delete`, `Home`, `End` |
 | F keys | `F1`…`F12` (bada intercepts `F6`–`F10` in henkan) |
-| Language keys | `Lang1` (かな), `Lang2` (英数), `Convert` (変換), `Lang3` (カタカナ). Hosts handle them (§7.4) and send only `Lang1`, in henkan, as "next menu entry" (⇧: previous) |
+| Language keys | `Lang1` (かな), `Lang2` (英数), `Convert` (変換), `Lang3` (カタカナ). Hosts handle them (§7.4) and send only `Lang1`, in henkan, as "next menu entry" (⇧: previous) or, with ⌃, as "fix what shows" (v1.2) |
 
 - The first 48 (number row through `IntlRo`) are the **JIS kana space**, where bada's layouts type.
 - An engine must accept **any** string as `key`; a code it doesn't know is a key it doesn't handle:
@@ -217,9 +219,24 @@ engine has it.
 | `Lang1` (かな) | muhenkan | profile `mac-kana`, `P_set_mode(1)` |
 | `Lang1` | henkan, profile `mac-kana`, or a menu of more than one row | `P_key({"key":"Lang1","shift":…})`: next entry (⇧: previous) |
 | `Lang1` | henkan, another profile, menu of ≤ 1 row | `P_set_profile("mac-kana")` |
+| ⌃ `Lang1` (⌃かな); on a non-Mac keyboard ⌃ `Convert` (⌃変換) | henkan | v1.2, optional. `P_key({"key":"Lang1","ctrl":true})`: fix what shows (below) |
+| ⌃ `Lang1`; ⌃ `Convert` | muhenkan | Nothing: no call |
 | `Convert` (変換) / `Lang3` (カタカナ) | muhenkan | profile `henkan` / `katakana`, `P_set_mode(1)` |
 | `Convert` / `Lang3` | henkan, same profile | `P_key` `Lang1`: next entry |
 | `Convert` / `Lang3` | henkan, other profile | `P_set_profile(…)` |
+
+**⌃ `Lang1`: fix what shows** (v1.2, optional). Sending it is **recommended**: it is how a user
+keeps a reading while typing on.
+
+- The event is `Lang1` with `ctrl` only (no ⇧ ⌥ ⌘), whichever key the host reads it from: ⌃かな on
+  a Mac JIS keyboard, ⌃変換 (Control + `Convert`) on other keyboards.
+- With something staged, the engine **fixes** it: the keys staged so far keep the text that shows
+  (the current entry, the top one included) and stay staged. Nothing is committed, and what was
+  fixed no longer changes when more keys are typed. With nothing staged, nothing happens. Either
+  way the key is `consumed`.
+- A host that doesn't send it loses nothing. An engine that doesn't know it treats the event as it
+  treats any ⌃ `Lang1` (bada ime up to 0.3.0: a ⌃ shortcut, which commits what's staged and passes
+  the key on, §11).
 
 ### 7.5 The host's selection
 
@@ -302,7 +319,11 @@ Behaviour v1 doesn't require, but a bada-like engine should follow (bada `docs/s
 - **Henkan keys** (§6.3 there): Space, Enter, Esc and other keys commit what shows, then act; **Esc
   commits**, it doesn't cancel. ⇧Enter commits and does nothing else. Tab / ↓ / かな: next entry;
   ⇧Tab / ↑ / ⇧かな: previous. With nothing staged, keys go to the app. ⌘ / ⌃ shortcuts commit, then
-  pass.
+  pass. After 0.3.0, ⌃かな is not one of them: it **fixes what shows** (§7.4 here; §6.4 there). The
+  layout that read the fixed keys sticks: its reading of the keys typed after shows first, until a
+  menu row is chosen by hand or the text is committed. Backspace takes back the keys after a fix,
+  then the fixed text a character at a time. Picking a menu row and typing on fixes the pick the
+  same way.
 - **The menu** (§6.4): typing lands on entry 0; no wrap; committing commits the entry shown.
 - **Muhenkan** (§6.2): consume only keys the engine types itself (bada: ⌥ + letter variants,
   半角/全角 on the selection).

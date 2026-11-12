@@ -47,7 +47,8 @@ keys! {
     Delete = "Delete", Home = "Home", End = "End",
     F1 = "F1", F2 = "F2", F3 = "F3", F4 = "F4", F5 = "F5", F6 = "F6",
     F7 = "F7", F8 = "F8", F9 = "F9", F10 = "F10", F11 = "F11", F12 = "F12",
-    // かな, 英数. Hosts handle these (spec §7.4) and send only Lang1, in henkan, as "next entry".
+    // かな, 英数. Hosts handle these (spec §7.4) and send only Lang1, in henkan, as "next entry"
+    // (with ctrl: "fix what shows", v1.2, optional).
     Lang1 = "Lang1", Lang2 = "Lang2",
     // 変換, カタカナ: profile keys, handled by the host.
     Convert = "Convert", Lang3 = "Lang3",
