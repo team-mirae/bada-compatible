@@ -259,6 +259,14 @@ impl<I: Ime> Host<I> {
             Key::Lang3 => "katakana",
             _ => return false,
         };
+        // ⌃ alone + a profile key (spec §7.4, v1.3): in henkan, "fix what shows"; in muhenkan, nothing.
+        if m.ctrl && !m.alt && !m.shift && !m.meta {
+            if self.mode == Mode::Henkan {
+                let out = self.ime.key(&KeyEvent::new("Lang1", Mods { ctrl: true, ..Mods::NONE }));
+                self.apply(out, false);
+            }
+            return true;
+        }
         if self.mode == Mode::Muhenkan {
             self.profile = profile.to_string();
             self.switch_mode(Mode::Henkan);

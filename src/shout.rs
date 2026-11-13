@@ -139,6 +139,8 @@ impl Ime for Shout {
                 self.row = 0;
                 self.out(String::new(), true)
             }
+            // ⌃かな, "fix what shows" (spec §7.4, v1.3): shout has nothing to fix; what shows stays.
+            Key::Lang1 if m.ctrl => self.out(String::new(), true),
             Key::Tab | Key::Lang1 if staged && !m.shift => {
                 self.row = (self.row + 1).min(last);
                 self.out(String::new(), true)

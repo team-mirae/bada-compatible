@@ -41,6 +41,20 @@ fn the_menu_moves_without_wrapping() {
 }
 
 #[test]
+fn control_kana_fixes_what_shows() {
+    // ⌃かな (v1.3) is sent to the engine in henkan; shout has nothing to fix, so nothing changes.
+    let mut h = host();
+    h.type_keys("h i Tab C-kana").unwrap();
+    assert_eq!((h.entry(), h.preedit().as_str()), (1, "hi"));
+    h.type_keys("C-henkan C-katakana").unwrap();
+    assert_eq!((h.entry(), h.preedit().as_str()), (1, "hi"));
+    // In muhenkan it does nothing, and doesn't enter henkan.
+    h.type_keys("S-Enter eisu C-kana a").unwrap();
+    assert_eq!(h.mode(), Mode::Muhenkan);
+    assert_eq!(h.text(), "hia");
+}
+
+#[test]
 fn commit_then_act() {
     let mut h = host();
     h.type_keys("a b Period c d Esc e f S-Enter").unwrap();

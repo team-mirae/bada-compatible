@@ -30,7 +30,8 @@ document disagree, one of them is fixed in the same change.
 |---|---|
 | **v1** | The C ABI of bada ime 0.2.0's engine: five required functions, plus optional ones a wrapper looks up with `dlsym` |
 | **v1.1** | v1, plus the optional, read-only `P_state` (§12) |
-| **v1.2** | v1.1, plus the optional `direction` of Outputs and state, for right-to-left IMEs (§6.1), and the optional key ⌃かな / ⌃変換, "fix what shows" (§7.4) |
+| **v1.2** | v1.1, plus the optional `direction` of Outputs and state, for right-to-left IMEs (§6.1) |
+| **v1.3** | v1.2, plus an optional key: ⌃ `Lang1` in henkan, "fix what shows" (bada ime 0.3.1's ⌃かな, §7.4) |
 
 What every engine and wrapper should know, in short:
 
