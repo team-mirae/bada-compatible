@@ -221,10 +221,25 @@ engine has it.
 | `Lang1` (かな) | muhenkan | profile `mac-kana`, `P_set_mode(1)` |
 | `Lang1` | henkan, profile `mac-kana`, or a menu of more than one row | `P_key({"key":"Lang1","shift":…})`: next entry (⇧: previous) |
 | `Lang1` | henkan, another profile, menu of ≤ 1 row | `P_set_profile("mac-kana")` |
+| ⌃ `Lang1` (⌃かな); on a non-Mac keyboard ⌃ `Convert` (⌃変換) | henkan | v1.2, optional. `P_key({"key":"Lang1","ctrl":true})`: fix what shows (below) |
+| ⌃ `Lang1`; ⌃ `Convert` | muhenkan | Nothing: no call |
 | `Convert` (変換) / `Lang3` (カタカナ) | muhenkan | profile `henkan` / `katakana`, `P_set_mode(1)` |
 | `Convert` / `Lang3` | henkan, same profile | `P_key` `Lang1`: next entry |
 | `Convert` / `Lang3` | henkan, other profile | `P_set_profile(…)` |
 | ⌃ `Lang1` / `Convert` / `Lang3` (⌃ alone) | henkan | v1.3: `P_key({"key":"Lang1","ctrl":true})`: fix what shows. Muhenkan: nothing |
+
+**⌃ `Lang1`: fix what shows** (v1.2, optional). Sending it is **recommended**: it is how a user
+keeps a reading while typing on.
+
+- The event is `Lang1` with `ctrl` only (no ⇧ ⌥ ⌘), whichever key the host reads it from: ⌃かな on
+  a Mac JIS keyboard, ⌃変換 (Control + `Convert`) on other keyboards.
+- With something staged, the engine **fixes** it: the keys staged so far keep the text that shows
+  (the current entry, the top one included) and stay staged. Nothing is committed, and what was
+  fixed no longer changes when more keys are typed. With nothing staged, nothing happens. Either
+  way the key is `consumed`.
+- A host that doesn't send it loses nothing. An engine that doesn't know it treats the event as it
+  treats any ⌃ `Lang1` (bada ime up to 0.3.0: a ⌃ shortcut, which commits what's staged and passes
+  the key on, §11).
 
 ### 7.5 The host's selection
 
